@@ -62,3 +62,6 @@ __pycache__/
 venv/
 env/
 .DS_Store
+
+# Open external datasets (IDSSE etc.): downloaded by scripts, never committed
+external_data/
