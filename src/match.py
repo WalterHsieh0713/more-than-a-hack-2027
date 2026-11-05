@@ -19,6 +19,7 @@ from typing import Optional
 import numpy as np
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+EXTERNAL_DIR = os.environ.get("MTAH_EXTERNAL_DIR") or os.path.join(ROOT, "external_data")
 sys.path.insert(0, os.path.join(ROOT, "evaluation"))
 import possession_metrics as pm  # noqa: E402
 

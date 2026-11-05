@@ -27,9 +27,9 @@ import urllib.request
 import numpy as np
 from lxml import etree
 
-from ..match import A, AWAY, D, H, HOME, Match, ROOT, X
+from ..match import A, AWAY, D, EXTERNAL_DIR, H, HOME, Match, X
 
-DIR = os.path.join(ROOT, "external_data", "idsse")
+DIR = os.path.join(EXTERNAL_DIR, "idsse")
 REPO = "https://huggingface.co/datasets/pysport/idsse-data"
 REVISION = "a715a38dfbaf5f58e431727c2b78d174101a703c"  # pinned: training must not follow a new push
 MATCHES = ("J03WMX", "J03WN1", "J03WOH", "J03WOY", "J03WPY", "J03WQQ", "J03WR9")
