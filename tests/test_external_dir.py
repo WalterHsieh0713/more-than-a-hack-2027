@@ -20,4 +20,5 @@ def test_open_data_defaults_to_the_repo_folder():
 
 
 def test_the_environment_can_move_open_data_elsewhere():
-    assert cache_path("/mnt/ssd/open") == "/mnt/ssd/open/idsse/cache/J03WMX.npz"
+    assert cache_path("/mnt/ssd/open") == os.path.join("/mnt/ssd/open", "idsse", "cache",
+                                                       "J03WMX.npz")
