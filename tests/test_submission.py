@@ -54,3 +54,11 @@ def test_safety_net_is_the_baseline_with_ungraded_x_and_pre_kickoff_d():
               players=np.zeros((n, 1, 2)), team=np.array([HOME], dtype=np.int8))
     got = submission.safety_net(m, kickoff=9)
     assert "".join(pm.LABELS[c] for c in got) == "XXHHHHXDDHHHX"
+
+
+@pytest.mark.parametrize("bad", [-1, 4])
+def test_a_code_outside_the_four_labels_is_refused_and_writes_nothing(tmp_path, bad):
+    path = tmp_path / "s.csv"
+    with pytest.raises(ValueError):
+        submission.write(path, np.array([H, bad, D], dtype=np.int8), n_frames=3)
+    assert not path.exists()

@@ -62,5 +62,7 @@ class Match:
 
 
 def label_string(codes):
-    """Codes to the H/A/D/X letters a submission file uses."""
+    """Codes to the H/A/D/X letters a submission file uses. Numpy would wrap -1 round to X."""
+    if ((codes < 0) | (codes >= pm.N_LABELS)).any():
+        raise ValueError("code outside the four labels")
     return np.array(pm.LABELS)[codes]
