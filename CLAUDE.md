@@ -10,6 +10,8 @@ Hard rules (disqualifying if broken):
 - No human-produced data about this match (event data, Opta/StatsBomb, etc).
 - The repo must regenerate the exact submission file deterministically (fix seeds, pin deps).
 - Never commit anything under data/ (gitignored; keep it that way).
+- The organisers' email to all participants overrides RULES.md: training, retraining and tuning use external data only. No self-training or pseudo-labels on this match, whatever RULES.md says.
+- Hosted LLMs must never see match data or results. Run BAR-ATH checks through `python -m src.blind`, which prints only PASS or FAIL. Never open data/logs.
 
 Key facts:
 - ATD frame_id = video_frame + 1. Coords normalised 0-1; pitch 105.3 x 68.0 m.
@@ -18,5 +20,7 @@ Key facts:
 - GT is derived mechanically from Metrica's corrected tracking: D where it marks the ball dead, else the owning team.
 - Smart Tagging times are seconds from video start: frame = round(s*25). Throw-ins have Team = N/A.
 - Baseline to beat: baseline_smooth50, spellF1 0.2433 on the full match.
+
+Setup: `uv sync`, then `uv run pytest`. Python and packages are pinned in uv.lock.
 
 Working style: concise explanations, plain prose. Build one piece at a time and check in after each milestone.

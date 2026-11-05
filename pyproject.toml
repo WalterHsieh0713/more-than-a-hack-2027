@@ -1,0 +1,16 @@
+# Pinned by uv.lock. `uv sync` builds .venv; `uv run pytest` runs the tests.
+[project]
+name = "mtah2027"
+version = "0"
+requires-python = "==3.11.*"
+dependencies = ["numpy", "pandas", "lxml"]
+
+[dependency-groups]
+dev = ["pytest", "hypothesis"]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

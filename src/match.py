@@ -32,8 +32,8 @@ class Match:
     fps: int
     pitch: tuple                      # (length, width) in metres
     half: np.ndarray                  # int8 [T]: 1, 2, or 0 on separator / ungraded frames
-    ball: np.ndarray                  # float32 [T, 3]: x, y, z (z NaN when the source has none)
-    players: np.ndarray               # float32 [T, P, 2]
+    ball: np.ndarray                  # float [T, 3]: x, y, z (z NaN when the source has none)
+    players: np.ndarray               # float [T, P, 2]
     team: np.ndarray                  # int8 [P]: HOME or AWAY per slot
     labels: Optional[np.ndarray] = None   # int8 [T], or None when there is no ground truth
     source_frame: Optional[np.ndarray] = None  # int64 [T]: the provider's own frame number

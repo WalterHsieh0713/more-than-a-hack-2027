@@ -2,8 +2,9 @@
 
 Same two steps: the team of the nearest tracked player wherever the ball is seen, D elsewhere,
 then a centred majority vote. Re-expressed rather than imported because starter/baseline.py
-streams the raw ATD file, while the open games arrive as a Match. Checked against the shipped
-baseline files on BAR-ATH by tests, so the two cannot drift apart unnoticed.
+streams the raw ATD file, while the open games arrive as a Match. tests/test_baseline.py checks
+it against the organisers' code, and the `baselines` check in src/checks.py against their shipped
+files, so the two cannot drift apart unnoticed.
 """
 
 import numpy as np
@@ -15,7 +16,9 @@ NOBODY = -1
 
 def nearest_team(m):
     """Per frame: HOME/AWAY of the player nearest the ball, NOBODY where the ball is not seen."""
-    d = np.linalg.norm(m.players - m.ball[:, None, :2], axis=2)        # [T, P]
+    # Squared, as starter/baseline.py compares: square roots can round two different distances
+    # to the same value, which would change the nearest player on rare frames.
+    d = np.sum((m.players - m.ball[:, None, :2]) ** 2, axis=2)         # [T, P]
     seen = ~np.isnan(m.ball[:, 0]) & ~np.all(np.isnan(d), axis=1)
     out = np.full(m.n_frames, NOBODY, dtype=np.int8)
     nearest = np.nanargmin(np.where(np.isnan(d[seen]), np.inf, d[seen]), axis=1)
