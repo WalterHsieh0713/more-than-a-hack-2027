@@ -92,3 +92,9 @@ def test_simulated_tags_never_use_ungraded_rows():
     truth = np.array([X] * 500 + [H] * 500, dtype=np.int8)
     sign = tags.simulated(truth, 1.0, 1.0, np.random.default_rng(2))
     assert (sign[:400] == 0).all()
+
+
+@pytest.mark.parametrize("labels", [{"Team": "N/A"}, {"Team": None}, {}])
+def test_a_phase_with_no_team_says_nothing_rather_than_failing(labels):
+    phase = {"code": "BUILD UP", "start_frame": 10, "end_frame": 50, "tags": labels}
+    assert set(signs(phase)) == {0}
