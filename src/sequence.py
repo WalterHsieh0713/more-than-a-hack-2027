@@ -215,6 +215,16 @@ def train_net(blocks, columns, target_of, threads=1, epochs=EPOCHS, window=WINDO
     return Trained(net.cpu(), scale, columns)
 
 
+class Mean:
+    """Heads whose chances are averaged, so that several seeds count as one head."""
+
+    def __init__(self, heads):
+        self.heads = heads
+
+    def proba(self, x):
+        return np.mean([head.proba(x) for head in self.heads], axis=0)
+
+
 class Challenger:
     """A dead head and one or more live heads, whose chances are averaged."""
 
@@ -226,23 +236,25 @@ class Challenger:
         codes = []
         for b in blocks:
             dead = self.dead.proba(b.x)[:, 0]
-            away, change = np.mean([live.proba(b.x) for live in self.lives], axis=0).T
+            away, change = Mean(self.lives).proba(b.x).T
             p = np.column_stack([(1 - dead) * (1 - away), (1 - dead) * away, dead])
             codes.append(decode(p, change, costs, gain))
         return features.expand(np.concatenate(codes), np.concatenate([b.index for b in blocks]), m)
 
 
-def fit(matches, copies, threads=1, dead="net", blend=False, **settings):
+def fit(matches, copies, threads=1, dead="net", blend=False, nets=1, **settings):
     blocks = []
     for m in matches.values():
         for copy in copies:
             seen = copy(m)
             blocks += sequences(seen) + sequences(features.swap_teams(seen))
-    return _fit_blocks(blocks, threads, dead, blend, **settings)
+    return _fit_blocks(blocks, threads, dead, blend, nets, **settings)
 
 
-def _fit_blocks(blocks, threads, dead, blend, **settings):
-    lives = [train_net(blocks, ALL_COLUMNS, live_targets, threads, **settings)]
+def _fit_blocks(blocks, threads, dead, blend, nets=1, **settings):
+    seed = settings.pop("seed", SEED)
+    lives = [Mean([train_net(blocks, ALL_COLUMNS, live_targets, threads, seed=seed + i, **settings)
+                   for i in range(nets)])]
     if dead == "trees" or blend:
         x = np.concatenate([b.x for b in blocks])
         y = np.concatenate([b.labels for b in blocks])
@@ -260,7 +272,7 @@ def _fit_blocks(blocks, threads, dead, blend, **settings):
 _CACHE = {}
 
 
-def challenger(dead="net", blend=False, **settings):
+def challenger(dead="net", blend=False, nets=1, **settings):
     """fit(train_matches, threads) for challenge.run, with every noise copy built once."""
     def fit_(train, threads):
         blocks = []
@@ -272,7 +284,7 @@ def challenger(dead="net", blend=False, **settings):
                         seen = copy(m)
                         _CACHE[name] += sequences(seen) + sequences(features.swap_teams(seen))
             blocks += _CACHE[name]
-        trained = _fit_blocks(blocks, threads, dead, blend, **settings)
+        trained = _fit_blocks(blocks, threads, dead, blend, nets, **settings)
         return lambda m: trained.predict(m, experiment.DECODER, 1)
     return fit_
 
@@ -284,11 +296,12 @@ if __name__ == "__main__":
     parser.add_argument("--hidden", type=int, default=HIDDEN)
     parser.add_argument("--dead", default="net")
     parser.add_argument("--blend", action="store_true", help="average in the tree live heads")
+    parser.add_argument("--nets", type=int, default=1, help="networks from different seeds")
     parser.add_argument("--threads", type=int, default=3)
     parser.add_argument("--folds", nargs="*", default=list(challenge.DEVELOPMENT))
     args = parser.parse_args()
     started = time.time()
-    results = challenge.run(challenger(args.dead, args.blend, epochs=args.epochs,
+    results = challenge.run(challenger(args.dead, args.blend, args.nets, epochs=args.epochs,
                                        hidden=args.hidden),
                             folds=tuple(args.folds), threads=args.threads)
     challenge.save(results, os.path.join(EXTERNAL_DIR, "challenge",
@@ -298,7 +311,7 @@ if __name__ == "__main__":
         outcome = challenge.report(results)
         bench.record(LEDGER, "sequence", args.name, dict(
             settings=dict(epochs=args.epochs, hidden=args.hidden, dead=args.dead,
-                          blend=args.blend),
+                          blend=args.blend, nets=args.nets),
             passes=outcome["passes"],
             **{test: [row["score"], row["gain"], row["low"], row["high"]]
                for test, row in outcome["rows"].items()}))

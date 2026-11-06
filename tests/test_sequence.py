@@ -60,6 +60,16 @@ def test_the_tree_heads_run_beside_the_network_and_blending_averages_them():
     assert not np.allclose(net, trees)
 
 
+def test_several_seeds_count_as_one_head_whose_chances_are_averaged():
+    matches = {"a": play(2000, 1), "b": play(2000, 2)}
+    trained = sequence.fit(matches, copies=[lambda m: m], threads=1, nets=2, **QUICK)
+    x = sequence.sequences(play(1500, 3))[0].x
+    head, = trained.lives
+    one, two = (net.proba(x) for net in head.heads)
+    assert len(head.heads) == 2 and not np.allclose(one, two)
+    np.testing.assert_allclose(head.proba(x), (one + two) / 2)
+
+
 def test_a_trained_network_beats_chance_on_easy_invented_play():
     matches = {str(i): play(3000, i) for i in range(4)}
     trained = sequence.fit(matches, copies=[lambda m: m], threads=1, epochs=6, window=128,
