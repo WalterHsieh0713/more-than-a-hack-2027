@@ -137,3 +137,13 @@ def test_the_team_head_learns_only_from_live_play():
     keep, target = model.team_rows(x, y)
     assert keep.tolist() == [True, True, True, False, False, False]
     assert target.tolist() == [0, 0, 1]
+
+
+def test_tag_evidence_changes_the_team_call_and_no_evidence_changes_nothing():
+    trained = model.fit([play(seed=1)], [lambda c: c], rounds=10)
+    test = play(seed=2)
+    rows = len(features.build(test)[1])
+    plain = trained.predict(test, COSTS)
+    np.testing.assert_array_equal(trained.predict(test, COSTS, signs=np.zeros(rows)), plain)
+    pushed = trained.predict(test, COSTS, signs=np.full(rows, -1.0), weight=8.0)
+    assert (pushed == A).sum() > (plain == A).sum()

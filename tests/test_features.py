@@ -243,3 +243,9 @@ def test_player_only_columns_never_use_the_ball():
     keep = [NAMES.index(n) for n in features.PLAYER_ONLY]
     np.testing.assert_array_equal(a[:, keep], b[:, keep])
     assert "pace" in features.PLAYER_ONLY and "seen" not in features.PLAYER_ONLY
+
+
+def test_features_are_rounded_so_a_tiny_float_difference_cannot_reach_the_model():
+    m = scene()
+    nudged = replace(m, players=m.players * (1 + 1e-13))
+    np.testing.assert_array_equal(build(nudged)[0], build(m)[0])

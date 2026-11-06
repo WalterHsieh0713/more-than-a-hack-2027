@@ -21,6 +21,7 @@ TOP_SPEED = 12.0            # m/s: faster steps are tracker jumps
 SLOW = 1.5                  # m/s
 MARGIN = 1.0                # m beyond the line that counts as out
 CAP_S = 30.0
+DECIMALS = 3
 PACE_SECONDS = 1            # speed over this long, because tracker jitter cancels out over it
 MOVING = 3.0                # m/s
 LINE_M = 1.5
@@ -258,7 +259,9 @@ def build(m):
     """(features [rows, len(NAMES)], first frame of each row) over both halves."""
     step = max(1, m.fps // HZ)
     parts = [_half(m, start, stop, step) for _, start, stop in half_spans(m)]
-    return np.vstack([p[0] for p in parts]), np.concatenate([p[1] for p in parts])
+    # Rounded so that tiny arithmetic differences between machines cannot reach the model.
+    return np.round(np.vstack([p[0] for p in parts]), DECIMALS), \
+        np.concatenate([p[1] for p in parts])
 
 
 def expand(codes, index, m):

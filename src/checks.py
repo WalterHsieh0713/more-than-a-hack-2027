@@ -4,12 +4,14 @@ Run these only through src.blind. They exist to prove the pipeline is correct, a
 may ever feed a parameter: the organisers forbid training or tuning on the provided match.
 """
 
+import hashlib
+import json
 import os
 import sys
 
 import numpy as np
 
-from . import barath, submission
+from . import barath, features, submission, submit, tags
 from .baseline import nearest_team, smooth
 from .match import D, ROOT, X, pm
 
@@ -83,5 +85,73 @@ def safety_file():
     assert (codes[m.half > 0] != X).all()
 
 
+# Wide bounds drawn from the open matches, not from this match: they catch a broken file only.
+POSSESSIONS_PER_MIN = (1.5, 8.0)
+DEAD_SHARE = (0.1, 0.65)
+TEAM_SHARE = (0.2, 0.8)
+TAGS_AGREE = 0.55
+MAX_MODELS = 3
+GATE = os.path.join(ROOT, "experiments", "target_gate.jsonl")
+
+
+def plausible(codes):
+    """The file looks like a football match. Pass or fail only, and never fed back."""
+    graded = codes[codes != X]
+    minutes = len(graded) / 25 / 60
+    spells = pm.possession_spells(codes, pm.valid_runs(codes))
+    assert POSSESSIONS_PER_MIN[0] < len(spells) / minutes < POSSESSIONS_PER_MIN[1]
+    assert DEAD_SHARE[0] < (graded == D).mean() < DEAD_SHARE[1]
+    alive = graded[graded != D]
+    assert TEAM_SHARE[0] < (alive == 0).mean() < TEAM_SHARE[1]
+
+
+def tags_agree(codes, signs):
+    """Smart Tagging's teams broadly match ours, which would catch home and away reversed."""
+    tagged = (signs != 0) & (codes != D) & (codes != X)
+    assert (((codes == 0) == (signs > 0))[tagged]).mean() > TAGS_AGREE
+
+
+def count_gate(path, model_id):
+    """Log a model reaching the target check, refusing more than MAX_MODELS distinct models."""
+    seen = set()
+    if os.path.isfile(path):
+        with open(path) as handle:
+            seen = {json.loads(line)["model"] for line in handle}
+    if model_id not in seen and len(seen) >= MAX_MODELS:
+        raise RuntimeError("the target check has already seen its {} models".format(MAX_MODELS))
+    with open(path, "a", newline="\n", encoding="utf-8") as handle:
+        handle.write(json.dumps({"model": model_id}) + "\n")
+
+
+def _model_hash():
+    digest = hashlib.sha256()
+    for name in sorted(os.listdir(submit.MODEL)):
+        with open(os.path.join(submit.MODEL, name), "rb") as handle:
+            digest.update(handle.read())
+    return digest.hexdigest()
+
+
+def candidate():
+    """The frozen model writes a valid file twice, identically, and it looks like a match."""
+    count_gate(GATE, _model_hash())
+    submit.main()
+    with open(submit.OUTPUT, "rb") as handle:
+        first = hashlib.sha256(handle.read()).hexdigest()
+    submit.main()
+    with open(submit.OUTPUT, "rb") as handle:
+        assert hashlib.sha256(handle.read()).hexdigest() == first
+
+    m = barath.load()
+    frame = pm.read_label_csv(submit.OUTPUT)
+    assert pm.validate_submission(frame, m.n_frames) is None
+    codes = pm.label_codes(frame)
+    assert (codes[m.half == 0] == X).all() and (codes[m.half > 0] != X).all()
+    assert (codes[110808:submission.SECOND_HALF_KICKOFF] == D).all()
+    plausible(codes)
+    index = features.build(m)[1]
+    signs = tags.row_signs(load_smart_tagging.load(), index, 5, submit.HOME_TAG, submit.AWAY_TAG)
+    tags_agree(codes[index + 2], signs)
+
+
 CHECKS = {check.__name__: check
-          for check in (assets, teams, time_base, public_scores, baselines, safety_file)}
+          for check in (assets, teams, time_base, public_scores, baselines, safety_file, candidate)}

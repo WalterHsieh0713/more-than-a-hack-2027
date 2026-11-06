@@ -12,7 +12,7 @@ import os
 import lightgbm as lgb
 import numpy as np
 
-from . import features
+from . import features, tags
 from .decode import decode
 from .match import A, D, H, X
 
@@ -92,10 +92,13 @@ class Model:
         """(H, A, D chances [rows, 3], chance of a change [rows]) for a match's rows."""
         return self._chances(features.build(m)[0])
 
-    def predict(self, m, costs, gain=1):
-        """One label per frame: decoded separately within each half."""
+    def predict(self, m, costs, gain=1, signs=None, weight=0.0):
+        """One label per frame: decoded separately within each half. signs and weight add
+        Smart Tagging evidence, one sign per row."""
         x, index = features.build(m)
         p, b = self._chances(x)
+        if signs is not None:
+            p = tags.apply(p, signs, weight)
         half = m.half[index]
         codes = np.concatenate([decode(p[half == h], b[half == h], costs, gain)
                                 for h in np.unique(half)])
