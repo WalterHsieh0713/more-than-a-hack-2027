@@ -8,7 +8,8 @@ has it judged from player shape alone, and who has it a second from now and had 
 
 Most of the gain is better dead-ball calls. The frozen dead head sees players only, because a dead
 ball looks different in each tracker. Here ball-reading chances reach it through a model trained
-to weigh them across simulators, and that held up on real tracking.
+to weigh them across simulators, and that held up on real tracking. The team questions gain on
+simulators only and split real possessions too finely, so turnovers cost twice what stops do.
 
 Chances for training are out of fold, split by match, so the second stage cannot learn to trust a
 model that has already seen the play. Inner fits use half the noisy copies, which costs little
@@ -30,7 +31,7 @@ SIMULATED = ("noise", "noise_b")
 CHANCE_DECIMALS = 4
 DECIMALS = 3
 ROUNDS = 150
-COSTS = Costs(turnover=1200, stop=1200, restart_other=960, restart_same=1440)
+COSTS = Costs(turnover=2400, stop=1200, restart_other=960, restart_same=1440)
 GAIN = 1
 SERIES = "dac"              # dead, away, change: the columns of a chance array
 LAGS = (1, 2, 3, 5, 8, 13, 25)
