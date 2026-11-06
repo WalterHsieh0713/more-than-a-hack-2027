@@ -91,7 +91,7 @@ def _walk(rng, start, stop, n, fps, wander):
     return np.column_stack([np.interp(t, u, way[:, axis]) for axis in (0, 1)])
 
 
-def _degrade_ball(m, rng, level):
+def _degrade_ball(m, rng, level, gap_scale):
     T, fps = m.n_frames, m.fps
     xy = m.ball[:, :2].astype(np.float32)
     frozen = _frozen(xy, round(FROZEN_MIN_S * fps))
@@ -102,8 +102,8 @@ def _degrade_ball(m, rng, level):
               + BALL_LOSS_HEIGHT_PER_S * np.clip(height / BALL_HEIGHT_REF_M, 0, 1)
               + BALL_LOSS_CROWD_PER_S * np.minimum(crowd / BALL_CROWD_REF, 1))
     hazard[frozen] = FROZEN_LOSS_PER_S
-    starts = np.flatnonzero(rng.random(T) < 1 - np.exp(-level * hazard / fps))
-    lengths = 1 + (BALL_GAP_MEAN_S * fps * _spread(rng, len(starts))).astype(np.int64)
+    starts = np.flatnonzero(rng.random(T) < 1 - np.exp(-level * hazard / (fps * gap_scale)))
+    lengths = 1 + (BALL_GAP_MEAN_S * gap_scale * fps * _spread(rng, len(starts))).astype(np.int64)
     depth = np.zeros(T + 1, np.int64)
     np.add.at(depth, starts, 1)
     np.add.at(depth, np.minimum(starts + lengths, T), -1)
@@ -162,14 +162,14 @@ def _degrade_players(m, rng, level):
     return out + level * PLAYER_JITTER_M * _jitter(rng, out.shape, JITTER_TAU_S * fps)
 
 
-def degrade(m: Match, seed: int, level: float = 1.0) -> Match:
+def degrade(m: Match, seed: int, level: float = 1.0, gap_scale: float = 1.0) -> Match:
     """A noisy copy of m. Never looks at m.labels, which pass through unchanged.
 
     level scales the stochastic noise. At level=0 ball height is still gone, slots are still
     anonymous, and the frozen ball still moves.
     """
     rng = np.random.default_rng(seed)
-    ball = _degrade_ball(m, rng, level)
+    ball = _degrade_ball(m, rng, level, gap_scale)
     players = _degrade_players(m, rng, level)
     team = np.repeat(np.array([HOME, AWAY], np.int8), SLOTS_PER_TEAM)
     return dataclasses.replace(m, ball=ball, players=players, team=team)

@@ -295,3 +295,24 @@ def test_a_team_with_more_tracks_than_slots_drops_the_excess():
     out = degrade(clean(T=200, ys=tuple(range(1, 25)) + (40,)), 7, level=0)
     assert np.isfinite(out.players[:, :23, 0]).sum(1).max() == 23
     assert np.isfinite(out.players[:, 23:, 0]).sum(1).max() == 1
+
+
+def _gap_stats(ball):
+    """(share of frames with a ball, median gap in frames) for a ball track."""
+    seen = np.isfinite(ball[:, 0])
+    edges = np.flatnonzero(np.diff(np.concatenate(([0], (~seen).astype(int), [0]))))
+    return seen.mean(), np.median(edges[1::2] - edges[::2])
+
+
+def test_gap_scale_makes_ball_gaps_longer_without_losing_much_more_ball():
+    n, fps = 60000, 25
+    ball = np.column_stack([np.linspace(5, 100, n), np.full(n, 30.0), np.full(n, 0.5)])
+    players = np.tile(np.linspace(10, 90, 22)[None, :, None], (n, 1, 2)).astype(np.float32)
+    players[:, :, 1] = 30.0
+    m = Match(name="gaps", fps=fps, pitch=(105.0, 68.0), half=np.ones(n, dtype=np.int8),
+              ball=ball, players=players, team=np.array([0] * 11 + [1] * 11, dtype=np.int8),
+              labels=np.zeros(n, dtype=np.int8))
+    base_seen, base_gap = _gap_stats(noise.degrade(m, 1, 1.0).ball)
+    long_seen, long_gap = _gap_stats(noise.degrade(m, 1, 1.0, gap_scale=5.0).ball)
+    assert long_gap > 3 * base_gap
+    assert abs(long_seen - base_seen) < 0.1

@@ -3,7 +3,12 @@
 name = "mtah2027"
 version = "0"
 requires-python = "==3.11.*"
-dependencies = ["numpy", "pandas", "lxml"]
+dependencies = [
+    "numpy",
+    "pandas",
+    "lxml",
+    "lightgbm>=4.7.0",
+]
 
 [dependency-groups]
 dev = ["pytest", "hypothesis"]
