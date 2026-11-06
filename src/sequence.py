@@ -10,6 +10,7 @@ seeded, and on one machine repeats exactly, though not necessarily across machin
 """
 
 import argparse
+import json
 import os
 import time
 from dataclasses import dataclass
@@ -240,6 +241,37 @@ class Challenger:
             p = np.column_stack([(1 - dead) * (1 - away), (1 - dead) * away, dead])
             codes.append(decode(p, change, costs, gain))
         return features.expand(np.concatenate(codes), np.concatenate([b.index for b in blocks]), m)
+
+    def save(self, folder):
+        """Networks as npz files of arrays, trees as LightGBM's text files, and a note of how
+        they are combined."""
+        os.makedirs(folder, exist_ok=True)
+        nets = self.lives[0].heads
+        for i, net in enumerate(nets):
+            net.save(os.path.join(folder, f"live{i}.npz"))
+        shape = dict(nets=len(nets), blend=len(self.lives) > 1,
+                     dead="net" if isinstance(self.dead, Trained) else "trees")
+        if shape["dead"] == "net":
+            self.dead.save(os.path.join(folder, "dead.npz"))
+        for head in [self.dead] + self.lives[1:]:
+            if hasattr(head, "trees"):
+                head.trees.save(folder)
+                break
+        with open(os.path.join(folder, "shape.json"), "w", encoding="utf-8") as handle:
+            json.dump(shape, handle)
+
+    @classmethod
+    def load(cls, folder):
+        with open(os.path.join(folder, "shape.json"), encoding="utf-8") as handle:
+            shape = json.load(handle)
+        lives = [Mean([Trained.load(os.path.join(folder, f"live{i}.npz"))
+                       for i in range(shape["nets"])])]
+        trees = model.Model.load(folder) if shape["blend"] or shape["dead"] == "trees" else None
+        if shape["blend"]:
+            lives.append(TreeLive(trees))
+        dead = TreeDead(trees) if shape["dead"] == "trees" else Trained.load(
+            os.path.join(folder, "dead.npz"))
+        return cls(dead, lives)
 
 
 def fit(matches, copies, threads=1, dead="net", blend=False, nets=1, **settings):

@@ -60,6 +60,18 @@ def test_the_tree_heads_run_beside_the_network_and_blending_averages_them():
     assert not np.allclose(net, trees)
 
 
+def test_a_blended_challenger_comes_back_from_disk_predicting_the_same_labels(tmp_path):
+    matches = {"a": play(2000, 1), "b": play(2000, 2)}
+    trained = sequence.fit(matches, copies=[lambda m: m], threads=1, dead="trees", blend=True,
+                           nets=2, **QUICK)
+    trained.save(tmp_path / "c")
+    back = sequence.Challenger.load(tmp_path / "c")
+    m = play(1500, 3)
+    np.testing.assert_array_equal(back.predict(m, COSTS), trained.predict(m, COSTS))
+    assert sorted(p.name for p in (tmp_path / "c").iterdir()) == [
+        "change.txt", "dead.txt", "live0.npz", "live1.npz", "shape.json", "team.txt"]
+
+
 def test_several_seeds_count_as_one_head_whose_chances_are_averaged():
     matches = {"a": play(2000, 1), "b": play(2000, 2)}
     trained = sequence.fit(matches, copies=[lambda m: m], threads=1, nets=2, **QUICK)
