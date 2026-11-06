@@ -1,3 +1,17 @@
+# Team 827
+
+Our entry to the challenge described below. **[TECHNICAL.md](TECHNICAL.md)** explains the method,
+the data we used and how to reproduce the file. With the match bundle unpacked into `data/`:
+
+```bash
+uv sync
+uv run python -m src.submit     # writes evaluation/results/827.csv
+```
+
+Everything below this section is the organisers' original README.
+
+---
+
 # More than a Hack 2027 — Phase 1: Ball Possession
 
 **Organised by [Metrica Sports](https://metrica-sports.com), [FC Barcelona](https://www.fcbarcelona.com)
