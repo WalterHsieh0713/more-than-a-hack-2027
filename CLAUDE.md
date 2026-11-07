@@ -11,7 +11,9 @@ Hard rules (disqualifying if broken):
 - The repo must regenerate the exact submission file deterministically (fix seeds, pin deps).
 - Never commit anything under data/ (gitignored; keep it that way).
 - The organisers' email to all participants overrides RULES.md: training, retraining and tuning use external data only. No self-training or pseudo-labels on this match, whatever RULES.md says.
+- Organisers' reply, 2026-11-06: anything not explicitly allowed is not permitted. Never check output against the video. Check the licence of every dataset before using it.
 - Hosted LLMs must never see match data or results. Run BAR-ATH checks through `python -m src.blind`, which prints only PASS or FAIL. Never open data/logs.
+- Keep evaluation/gt, evaluation/results and data/ out of every search, including git grep: a match prints their rows.
 
 Key facts:
 - ATD frame_id = video_frame + 1. Coords normalised 0-1; pitch 105.3 x 68.0 m.
