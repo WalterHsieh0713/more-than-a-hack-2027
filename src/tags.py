@@ -73,14 +73,17 @@ def simulated(truth, reliability, coverage, rng):
     return sign
 
 
-def _experiment():
+def _experiment(runs=None, costs=None, stage="stage5-tags"):
+    """runs: {simulator: [saved held-out chances]}, by default the frozen model's, decoded with
+    costs, by default the frozen decoder."""
     from . import bench, tune
     from .decode import decode
     from .experiment import DECODER, OUT
     import glob
-    ledger, stage = tune.LEDGER, "stage5-tags"
-    runs = {test: [dict(np.load(p)) for p in sorted(glob.glob(os.path.join(
-        OUT, "noise+noise_b_{}_*.npz".format(test))))] for test in ("noise", "noise_b")}
+    ledger, costs = tune.LEDGER, DECODER if costs is None else costs
+    if runs is None:
+        runs = {test: [dict(np.load(p)) for p in sorted(glob.glob(os.path.join(
+            OUT, "noise+noise_b_{}_*.npz".format(test))))] for test in ("noise", "noise_b")}
 
     def row_truth(s):
         return s["truth"][np.minimum(s["index"] + 2, len(s["truth"]) - 1)]
@@ -94,7 +97,7 @@ def _experiment():
                 sign = simulated(row_truth(s), reliability, coverage, rng)
                 p = apply(s["chance"].astype(np.float64), sign, weight)
                 half = s["half"]
-                codes = np.concatenate([decode(p[half == h], s["boundary"][half == h], DECODER, 1)
+                codes = np.concatenate([decode(p[half == h], s["boundary"][half == h], costs, 1)
                                         for h in np.unique(half)])
                 pairs.append((s["truth"], tune.frames(codes, s["index"], tune.STEP, s["truth"])))
             total.append(bench.spell_f1(pairs))

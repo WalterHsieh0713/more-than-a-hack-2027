@@ -11,18 +11,14 @@ import sys
 
 import numpy as np
 
-from . import barath, features, submission, tags
-from .decode import Costs
+from . import barath, features, stack, submission, tags
 from .match import D, ROOT
-from .model import Model
 
 sys.path.insert(0, ROOT)
 from starter import load_smart_tagging  # noqa: E402
 
-MODEL = os.path.join(ROOT, "models", "v1")
+MODEL = os.path.join(ROOT, "models", "v2")
 OUTPUT = os.path.join(ROOT, "evaluation", "results", "827.csv")
-DECODER = Costs(turnover=2000, stop=2000, restart_other=1600, restart_same=2400)
-GAIN = 1
 HOME_TAG, AWAY_TAG = "Barcelona", "Atletic Club"
 
 
@@ -37,11 +33,12 @@ def labels(m, trained):
     index = features.build(m)[1]
     signs = tags.row_signs(load_smart_tagging.load(), index, max(1, m.fps // features.HZ),
                            HOME_TAG, AWAY_TAG)
-    return finish(trained.predict(m, DECODER, GAIN, signs=signs, weight=tags.WEIGHT), m.half)
+    return finish(trained.predict(m, stack.COSTS, stack.GAIN, signs=signs, weight=tags.WEIGHT),
+                  m.half)
 
 
 def main():
-    submission.write(OUTPUT, labels(barath.load(), Model.load(MODEL)))
+    submission.write(OUTPUT, labels(barath.load(), stack.Stack.load(MODEL)))
 
 
 if __name__ == "__main__":

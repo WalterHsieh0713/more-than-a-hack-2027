@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 import numpy as np
 
 from src import features, model, stack
@@ -107,14 +109,14 @@ def play(name="play", n=1500, seed=0):
                  labels=labels)
 
 
-def tiny_stack():
+def tiny_stack(free=False, m=None):
     """A first and second stage fitted on an invented match, for what can go wrong in saving."""
-    m = play()
+    m = play() if m is None else m
     x, index = features.build(m)
     table = dict(x=x, labels=model.row_labels(m, index), half=m.half[index])
-    first = stack.train_first([table], rounds=3)
+    first = stack.train_first([table], rounds=3, free=free)
     rows = stack.head_rows(first.chances(x), table["half"], table["labels"])
-    return stack.Stack(first, *stack.train_heads(*rows, rounds=3))
+    return stack.Stack(first, *stack.train_heads(*rows, rounds=3, free=free))
 
 
 def test_the_first_stage_answers_every_question_and_every_head():
@@ -155,3 +157,75 @@ def test_tags_pull_frames_towards_the_team_they_name():
     home = fitted.predict(m, COSTS, signs=np.ones(rows_of(m)), weight=5.0)
     away = fitted.predict(m, COSTS, signs=-np.ones(rows_of(m)), weight=5.0)
     assert (home == H).sum() > (away == H).sum()
+
+
+def rows_and_half(m):
+    x, index = features.build(m)
+    return x, m.half[index]
+
+
+def telling(seed=0, n=6000):
+    """An invented match whose ball vanishes whenever play is dead, long enough that a model
+    learns to read it."""
+    m = play(n=n, seed=seed)
+    ball = m.ball.copy()
+    ball[m.labels == D, :2] = np.nan
+    return replace(m, ball=ball)
+
+
+def test_hiding_the_ball_moves_the_dead_chance_only_of_the_side_that_reads_it():
+    m = telling(seed=4, n=1500)
+    hidden = replace(m, ball=np.full_like(m.ball, np.nan))
+    (x, half), (y, _) = rows_and_half(m), rows_and_half(hidden)
+    full, free = tiny_stack(m=telling()), tiny_stack(free=True, m=telling())
+    assert not np.array_equal(full.dead_chance(x, half)[0], full.dead_chance(y, half)[0])
+    np.testing.assert_array_equal(free.dead_chance(x, half)[0], free.dead_chance(y, half)[0])
+
+
+def averaged():
+    full = tiny_stack()
+    return stack.Stack(full.first, full.dead, full.team, full.change, partner=tiny_stack(free=True))
+
+
+def test_the_averaged_dead_chance_is_the_mean_of_both_sides():
+    m, both = play(seed=5), averaged()
+    x, half = rows_and_half(m)
+    alone = stack.Stack(both.first, both.dead, both.team, both.change)
+    expected = (alone.dead_chance(x, half)[0] + both.partner.dead_chance(x, half)[0]) / 2
+    np.testing.assert_allclose(both.chances(m)[0][:, D], expected)
+
+
+def test_averaging_a_stack_with_itself_changes_nothing():
+    m, s = play(seed=6), tiny_stack()
+    twin = stack.Stack(s.first, s.dead, s.team, s.change, partner=s)
+    np.testing.assert_array_equal(twin.predict(m, COSTS), s.predict(m, COSTS))
+
+
+def test_saved_averaged_weights_give_the_same_labels(tmp_path):
+    fitted, m = averaged(), play(seed=7)
+    fitted.save(tmp_path)
+    again = stack.Stack.load(tmp_path)
+    assert again.partner.first.free and not again.first.free
+    np.testing.assert_array_equal(fitted.predict(m, COSTS), again.predict(m, COSTS))
+
+
+def test_ball_free_training_reaches_every_stage(monkeypatch):
+    seen, real_first, real_heads = [], stack.train_first, stack.train_heads
+
+    def table(m):
+        x, index = features.build(m)
+        return [dict(x=x, labels=model.row_labels(m, index), half=m.half[index], inner=True)]
+
+    def first(tables, threads=1, free=False):
+        seen.append(free)
+        return real_first(tables, rounds=3, threads=threads, free=free)
+
+    def heads(x, y, near, threads=1, free=False):
+        seen.append(free)
+        return real_heads(x, y, near, rounds=3, threads=threads, free=free)
+    monkeypatch.setattr(stack, "noisy_tables", table)
+    monkeypatch.setattr(stack, "train_first", first)
+    monkeypatch.setattr(stack, "train_heads", heads)
+    trained = stack.train({str(i): play(name=str(i), seed=i) for i in range(stack.GROUPS)}, 1,
+                          free=True)
+    assert len(seen) == stack.GROUPS + 2 and all(seen) and trained.first.free

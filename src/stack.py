@@ -15,6 +15,10 @@ Chances for training are out of fold, split by match, so the second stage cannot
 model that has already seen the play. Inner fits use half the noisy copies, which costs little
 because the copies repeat each other, and the first stage used for prediction uses them all.
 Everything is rounded before it reaches a model, and decode rounds what comes out.
+
+The dead chance used is the plain mean of this stack's and a ball-free partner's, weight fixed at
+1/2. The partner's dead side reads only questions answered from players, because reading the ball
+helps on every simulator yet failed badly when trained on one simulator and tested on the other.
 """
 
 import os
@@ -43,6 +47,7 @@ QUESTIONS = ("stop", "start", "turn", "dead_any", "team_shape", "away_soon", "aw
 SHIFT_ROWS = 5              # one second
 QUESTION_LAGS = (2, 5, 13)
 QUESTION_WINDOWS = (5, 25)
+FREE_QUESTIONS = ("stop", "start", "dead_any", "team_shape")   # from players only when ball-free
 
 
 def _lagged(values, rows):
@@ -118,6 +123,12 @@ def _half_columns(chances):
 COLUMNS = list(_half_columns(np.zeros((2, len(SERIES) + len(QUESTIONS)))))
 DEAD_COLUMNS = [i for i, name in enumerate(COLUMNS)
                 if name != "a" and not name.startswith("a_") and not name.endswith("team_flip")]
+FREE_DEAD_COLUMNS = [i for i, name in enumerate(COLUMNS)
+                     if name.split("_")[0] in ("d", "stop", "start", "dead")]
+
+
+def dead_columns(free):
+    return FREE_DEAD_COLUMNS if free else DEAD_COLUMNS
 
 
 def columns(chances, half):
@@ -155,22 +166,25 @@ def question(name, labels, half):
     return keep, (labels[there[keep]] == A).astype(np.int8)
 
 
-def _question_columns(name):
-    return model.PLAYER_COLUMNS if name == "team_shape" else slice(None)
+def _question_columns(name, free=False):
+    players = name == "team_shape" or (free and name in FREE_QUESTIONS)
+    return model.PLAYER_COLUMNS if players else slice(None)
 
 
 class First:
-    """The frozen recipe's three heads and the extra questions, asked of the same features."""
+    """The frozen recipe's three heads and the extra questions, asked of the same features.
+    free: the stop, start and dead questions see players only."""
 
-    def __init__(self, heads, questions):
-        self.heads, self.questions = heads, questions
+    def __init__(self, heads, questions, free=False):
+        self.heads, self.questions, self.free = heads, questions, free
 
     def chances(self, x):
         """Rounded chances [rows, 3 + questions]: dead, away, change, then QUESTIONS."""
         parts = [self.heads.dead.predict(x[:, model.PLAYER_COLUMNS], num_threads=1),
                  self.heads.team.predict(x, num_threads=1),
                  self.heads.change.predict(x, num_threads=1)]
-        parts += [self.questions[name].predict(x[:, _question_columns(name)], num_threads=1)
+        parts += [self.questions[name].predict(x[:, _question_columns(name, self.free)],
+                                               num_threads=1)
                   for name in QUESTIONS]
         return np.round(np.column_stack(parts), CHANCE_DECIMALS).astype(np.float32)
 
@@ -180,13 +194,13 @@ class First:
             self.questions[name].save_model(os.path.join(folder, name + ".txt"))
 
     @classmethod
-    def load(cls, folder):
+    def load(cls, folder, free=False):
         return cls(model.Model.load(folder),
                    {name: lgb.Booster(model_file=os.path.join(folder, name + ".txt"))
-                    for name in QUESTIONS})
+                    for name in QUESTIONS}, free)
 
 
-def train_first(tables, rounds=model.ROUNDS, threads=1):
+def train_first(tables, rounds=model.ROUNDS, threads=1, free=False):
     """The first stage on tables of dict(x, labels, half), one per noisy copy."""
     keep = [t["labels"] != X for t in tables]
     x = np.concatenate([t["x"][k] for t, k in zip(tables, keep)])
@@ -200,10 +214,10 @@ def train_first(tables, rounds=model.ROUNDS, threads=1):
     for name in QUESTIONS:
         answers = [question(name, t["labels"], t["half"]) for t in tables]
         rows = np.concatenate([t["x"][a[0]] for t, a in zip(tables, answers)])
-        data = lgb.Dataset(rows[:, _question_columns(name)],
+        data = lgb.Dataset(rows[:, _question_columns(name, free)],
                            np.concatenate([a[1] for a in answers]), free_raw_data=False)
         questions[name] = lgb.train(params, data, rounds)
-    return First(heads, questions)
+    return First(heads, questions, free)
 
 
 def inner_groups(names):
@@ -229,9 +243,9 @@ def head_rows(chances, half, labels):
             model.near_change(labels, model.NEAR_ROWS)[keep])
 
 
-def train_heads(x, y, near, rounds=ROUNDS, threads=1):
+def train_heads(x, y, near, rounds=ROUNDS, threads=1, free=False):
     params = dict(model.PARAMS, num_threads=threads, objective="binary")
-    dead = lgb.train(params, lgb.Dataset(x[:, DEAD_COLUMNS], (y == D).astype(np.int8),
+    dead = lgb.train(params, lgb.Dataset(x[:, dead_columns(free)], (y == D).astype(np.int8),
                                          free_raw_data=False), rounds)
     keep, away = model.team_rows(x, y)
     team = lgb.train(params, lgb.Dataset(x[keep], away, free_raw_data=False), rounds)
@@ -240,15 +254,24 @@ def train_heads(x, y, near, rounds=ROUNDS, threads=1):
 
 
 class Stack:
-    def __init__(self, first, dead, team, change):
+    """partner: a ball-free Stack whose dead chance is averaged with this one's."""
+
+    def __init__(self, first, dead, team, change, partner=None):
         self.first, self.dead, self.team, self.change = first, dead, team, change
+        self.partner = partner
+
+    def dead_chance(self, x, half):
+        """(this stack's own dead chance per row, its second-stage features)."""
+        row = columns(self.first.chances(x), half)
+        return self.dead.predict(row[:, dead_columns(self.first.free)], num_threads=1), row
 
     def chances(self, m):
         """(H, A, D chances per row, change chance per row, half per row, row indices)."""
         x, index = features.build(m)
         half = m.half[index]
-        row = columns(self.first.chances(x), half)
-        dead = self.dead.predict(row[:, DEAD_COLUMNS], num_threads=1)
+        dead, row = self.dead_chance(x, half)
+        if self.partner is not None:
+            dead = (dead + self.partner.dead_chance(x, half)[0]) / 2
         away = self.team.predict(row, num_threads=1)
         change = self.change.predict(row, num_threads=1)
         p = np.empty((len(row), 3))
@@ -269,11 +292,16 @@ class Stack:
         self.first.save(os.path.join(folder, "first"))
         for name in HEADS:
             getattr(self, name).save_model(os.path.join(folder, name + ".txt"))
+        if self.partner is not None:
+            self.partner.save(os.path.join(folder, "partner"))
 
     @classmethod
-    def load(cls, folder):
-        return cls(First.load(os.path.join(folder, "first")),
-                   *[lgb.Booster(model_file=os.path.join(folder, name + ".txt")) for name in HEADS])
+    def load(cls, folder, free=False):
+        """A partner folder, if there is one, always holds the ball-free side."""
+        partner = os.path.join(folder, "partner")
+        return cls(First.load(os.path.join(folder, "first"), free),
+                   *[lgb.Booster(model_file=os.path.join(folder, name + ".txt")) for name in HEADS],
+                   partner=cls.load(partner, free=True) if os.path.isdir(partner) else None)
 
 
 def noisy_tables(m):
@@ -289,13 +317,14 @@ def noisy_tables(m):
     return out
 
 
-def train(matches, threads):
+def train(matches, threads, free=False):
     """Both stages on these matches' noisy copies."""
     tables = {name: noisy_tables(m) for name, m in matches.items()}
     inner = {name: [t for t in copies if t["inner"]] for name, copies in tables.items()}
 
     def first(names):
-        trained = train_first([t for name in names for t in inner[name]], threads=threads)
+        trained = train_first([t for name in names for t in inner[name]], threads=threads,
+                              free=free)
 
         def score(name, table):
             return head_rows(trained.chances(table["x"]), table["half"], table["labels"])
@@ -304,12 +333,23 @@ def train(matches, threads):
     parts = [part for name in sorted(held) for part in held[name]]
     x, y, near = (np.concatenate([part[k] for part in parts]) for k in range(3))
     del held, parts
-    heads = train_heads(x, y, near, threads=threads)
+    heads = train_heads(x, y, near, threads=threads, free=free)
     del x, y, near
     everything = [t for copies in tables.values() for t in copies]
-    return Stack(train_first(everything, threads=threads), *heads)
+    return Stack(train_first(everything, threads=threads, free=free), *heads)
+
+
+def train_averaged(matches, threads):
+    """The finalist: a stack with a ball-free partner, trained the same way on the same matches."""
+    full = train(matches, threads)
+    full.partner = train(matches, threads, free=True)
+    return full
 
 
 def fit(matches, threads):
     """A challenger for src.challenge: fit(train_matches, threads) -> predict(match)."""
     return train(matches, threads).predict
+
+
+def fit_averaged(matches, threads):
+    return train_averaged(matches, threads).predict

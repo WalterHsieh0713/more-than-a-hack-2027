@@ -16,7 +16,7 @@ import os
 
 import numpy as np
 
-from . import bench, dev_real, experiment, features, model, submit
+from . import bench, dev_real, experiment, features, model
 from .external.labels import challenge_labels
 from .match import EXTERNAL_DIR
 
@@ -70,7 +70,7 @@ def frozen_fit(train, threads):
                 parts += [model.table(seen), model.table(features.swap_teams(seen))]
     x, y, near = (np.concatenate([p[k] for p in parts]) for k in range(3))
     trained = model.train(x, y, near, threads=threads)
-    return lambda m: trained.predict(m, submit.DECODER, submit.GAIN)
+    return lambda m: trained.predict(m, experiment.DECODER, 1)
 
 
 def run(fit, folds=DEVELOPMENT, threads=3, unlocked=False):

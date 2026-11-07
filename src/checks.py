@@ -134,7 +134,7 @@ def _model_hash():
 
 
 def candidate():
-    """The frozen model writes a valid file twice, identically, and it looks like a match."""
+    """The submission model writes a valid file twice, identically, and it looks like a match."""
     count_gate(GATE, _model_hash())
     submit.main()
     with open(submit.OUTPUT, "rb") as handle:
