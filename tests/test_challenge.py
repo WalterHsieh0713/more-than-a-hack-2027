@@ -88,3 +88,16 @@ def test_saved_results_come_back_unchanged(tmp_path):
     back = challenge.load(tmp_path / "r.npz")
     assert sorted(back) == ["real", "s"] and len(back["s"]) == 2
     np.testing.assert_array_equal(back["s"][1][1], results["s"][1][1])
+
+
+def test_metrica_stays_out_of_training_but_is_still_tested():
+    trained_on = []
+
+    def fit(train, threads):
+        trained_on.append(sorted(train))
+        return lambda m: m.labels.copy()
+    games = {name: match(name) for name in ("J", "K", "M1", "M2")}
+    out = challenge.held_out(challenge.without_metrica(fit), games, ("J", "M1"), {"s": same},
+                             threads=1)
+    assert trained_on == [["K"], ["J", "K"]]
+    assert len(out["s"]) == 2

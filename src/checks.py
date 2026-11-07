@@ -125,8 +125,10 @@ def count_gate(path, model_id):
 
 def _model_hash():
     digest = hashlib.sha256()
-    for name in sorted(os.listdir(submit.MODEL)):
-        with open(os.path.join(submit.MODEL, name), "rb") as handle:
+    paths = [os.path.join(folder, name)
+             for folder, _, names in os.walk(submit.MODEL) for name in names]
+    for path in sorted(paths):
+        with open(path, "rb") as handle:
             digest.update(handle.read())
     return digest.hexdigest()
 

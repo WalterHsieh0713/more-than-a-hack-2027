@@ -1,3 +1,5 @@
+import hashlib
+
 import numpy as np
 import pytest
 
@@ -58,3 +60,20 @@ def test_rerunning_a_model_already_through_the_gate_is_not_a_new_try(tmp_path):
         checks.count_gate(path, name)
     checks.count_gate(path, "a")
     assert len(path.read_text().splitlines()) == 4
+
+
+def test_the_model_hash_sees_files_in_nested_folders(tmp_path, monkeypatch):
+    (tmp_path / "first").mkdir()
+    (tmp_path / "first" / "dead.txt").write_text("a")
+    (tmp_path / "team.txt").write_text("b")
+    monkeypatch.setattr(checks.submit, "MODEL", str(tmp_path))
+    before = checks._model_hash()
+    (tmp_path / "first" / "dead.txt").write_text("c")
+    assert checks._model_hash() != before
+
+
+def test_a_flat_folder_keeps_its_old_hash_so_the_gate_still_recognises_it(tmp_path, monkeypatch):
+    (tmp_path / "dead.txt").write_text("a")
+    (tmp_path / "team.txt").write_text("b")
+    monkeypatch.setattr(checks.submit, "MODEL", str(tmp_path))
+    assert checks._model_hash() == hashlib.sha256(b"ab").hexdigest()

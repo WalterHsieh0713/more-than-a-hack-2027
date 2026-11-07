@@ -33,6 +33,12 @@ def check_folds(folds, unlocked=False):
         raise ValueError("the confirmation matches are for finalists only")
 
 
+def without_metrica(fit):
+    """The same challenger trained on licensed matches only. Metrica's stay as test matches."""
+    return lambda train, threads: fit({k: m for k, m in train.items()
+                                       if k not in experiment.METRICA}, threads)
+
+
 def held_out(fit, matches, folds, simulators, threads):
     """{simulator: [(truth, prediction)]} with each fold left out of its own training."""
     out = {name: [] for name in simulators}

@@ -26,15 +26,21 @@ SIMULATORS = {"noise": noise.degrade, "noise_b": noise_b.degrade,
               "none": lambda m, seed, level: noise.degrade(m, seed, 0)}
 TRAIN_LEVELS = (0.7, 1.3)
 TRAIN_GAMES = (1, 2)
+METRICA = tuple("M{}".format(game) for game in TRAIN_GAMES)
 DECODER = Costs(turnover=2000, stop=2000, restart_other=1600, restart_same=2400)
 OUT = os.path.join(EXTERNAL_DIR, "held_out")
 
 
+def german():
+    """The CC BY matches, by name: all that the final model trains on."""
+    return {m.name.replace("IDSSE-", ""): m for m in (idsse.load(i) for i in idsse.MATCHES)}
+
+
 def matches():
-    """Every match we may train or validate on, by name, with Metrica's blank ball bridged."""
-    out = {m.name.replace("IDSSE-", ""): m for m in (idsse.load(i) for i in idsse.MATCHES)}
-    for game in TRAIN_GAMES:
-        out["M{}".format(game)] = model.fill_blanks(metrica.load(game))
+    """Every match we may test on, by name, with Metrica's blank ball bridged."""
+    out = german()
+    for game, name in zip(TRAIN_GAMES, METRICA):
+        out[name] = model.fill_blanks(metrica.load(game))
     return out
 
 

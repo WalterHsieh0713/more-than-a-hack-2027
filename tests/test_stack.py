@@ -138,3 +138,20 @@ def test_prediction_gives_one_label_per_frame_in_the_scorer_codes():
     m = play(seed=2)
     codes = tiny_stack().predict(m, COSTS)
     assert len(codes) == m.n_frames and set(np.unique(codes)) <= {H, A, D, X}
+
+
+def rows_of(m):
+    return len(features.build(m)[1])
+
+
+def test_tags_with_no_weight_change_nothing():
+    fitted, m = tiny_stack(), play(seed=3)
+    np.testing.assert_array_equal(fitted.predict(m, COSTS),
+                                  fitted.predict(m, COSTS, signs=np.ones(rows_of(m)), weight=0.0))
+
+
+def test_tags_pull_frames_towards_the_team_they_name():
+    fitted, m = tiny_stack(), play(seed=3)
+    home = fitted.predict(m, COSTS, signs=np.ones(rows_of(m)), weight=5.0)
+    away = fitted.predict(m, COSTS, signs=-np.ones(rows_of(m)), weight=5.0)
+    assert (home == H).sum() > (away == H).sum()

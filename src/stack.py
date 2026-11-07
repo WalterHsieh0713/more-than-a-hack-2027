@@ -22,7 +22,7 @@ import os
 import lightgbm as lgb
 import numpy as np
 
-from . import experiment, features, model
+from . import experiment, features, model, tags
 from .decode import Costs, decode
 from .match import A, D, H, X
 
@@ -243,8 +243,8 @@ class Stack:
     def __init__(self, first, dead, team, change):
         self.first, self.dead, self.team, self.change = first, dead, team, change
 
-    def predict(self, m, costs=COSTS, gain=GAIN):
-        """One label per frame, decoded separately within each half."""
+    def chances(self, m):
+        """(H, A, D chances per row, change chance per row, half per row, row indices)."""
         x, index = features.build(m)
         half = m.half[index]
         row = columns(self.first.chances(x), half)
@@ -253,6 +253,14 @@ class Stack:
         change = self.change.predict(row, num_threads=1)
         p = np.empty((len(row), 3))
         p[:, H], p[:, A], p[:, D] = (1 - dead) * (1 - away), (1 - dead) * away, dead
+        return p, change, half, index
+
+    def predict(self, m, costs=COSTS, gain=GAIN, signs=None, weight=0.0):
+        """One label per frame, decoded separately within each half. signs and weight add
+        Smart Tagging evidence, one sign per row."""
+        p, change, half, index = self.chances(m)
+        if signs is not None:
+            p = tags.apply(p, signs, weight)
         codes = np.concatenate([decode(p[half == h], change[half == h], costs, gain)
                                 for h in np.unique(half)])
         return features.expand(codes, index, m)
@@ -281,9 +289,9 @@ def noisy_tables(m):
     return out
 
 
-def fit(train, threads):
-    """A challenger for src.challenge: fit(train_matches, threads) -> predict(match)."""
-    tables = {name: noisy_tables(m) for name, m in train.items()}
+def train(matches, threads):
+    """Both stages on these matches' noisy copies."""
+    tables = {name: noisy_tables(m) for name, m in matches.items()}
     inner = {name: [t for t in copies if t["inner"]] for name, copies in tables.items()}
 
     def first(names):
@@ -299,4 +307,9 @@ def fit(train, threads):
     heads = train_heads(x, y, near, threads=threads)
     del x, y, near
     everything = [t for copies in tables.values() for t in copies]
-    return Stack(train_first(everything, threads=threads), *heads).predict
+    return Stack(train_first(everything, threads=threads), *heads)
+
+
+def fit(matches, threads):
+    """A challenger for src.challenge: fit(train_matches, threads) -> predict(match)."""
+    return train(matches, threads).predict

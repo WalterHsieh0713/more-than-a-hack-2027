@@ -3,14 +3,14 @@
 DFL's labels flip on every touch. CHALLENGE.md says a simple touch without control or a deflection
 is not a change of possession, so a very short spell between two spells of the other team goes
 back to that team. Reading the public window suggests the truth still credits short, poorly
-controlled tackles, so the limit must stay small. Nothing here is fitted to the match: the limit is
-compared on external data only.
+controlled tackles, so the limit must stay small. No model or score is fitted to the match: the
+limit is compared on external data only.
 """
 
 from ..match import A, H, pm
 
-# Chosen from the definition, not from any statistic of the truth: a touch or deflection is not a
-# change of possession, while the public window credits scrappy tackles lasting a few seconds.
+# From the definition: a touch or deflection is not a change of possession. Set after a person read
+# the public window to learn what counts as possession, and saw few spells under a second there.
 FLIP_LIMIT_SECONDS = 1
 
 
