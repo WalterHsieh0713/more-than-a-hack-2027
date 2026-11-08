@@ -8,7 +8,6 @@ dependencies = [
     "pandas",
     "lxml",
     "lightgbm>=4.7.0",
-    "torch>=2.15.0",
 ]
 
 [dependency-groups]
