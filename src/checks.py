@@ -151,7 +151,7 @@ def candidate():
     assert (codes[110808:submission.SECOND_HALF_KICKOFF] == D).all()
     plausible(codes)
     index = features.build(m)[1]
-    signs = tags.row_signs(load_smart_tagging.load(), index, 5, submit.HOME_TAG, submit.AWAY_TAG)
+    signs = tags.row_signs(load_smart_tagging.load(), index, 5, tags.HOME_TAG, tags.AWAY_TAG)
     tags_agree(codes[index + 2], signs)
 
 

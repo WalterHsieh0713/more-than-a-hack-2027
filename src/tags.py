@@ -5,6 +5,9 @@ are automatic and only roughly timed, so they nudge the team odds rather than de
 
 No other match has these tags, so the weight is chosen on simulated tags on external matches:
     python -m src.tags
+At 0.5 they helped the first model by about 0.01 and did no harm at 55% reliability. On the
+averaged stack every weight above 0 hurt unless tags were right 95% of the time, so the submission
+does not use them. The blind candidate check still compares its output with them.
 """
 
 import os
@@ -21,7 +24,7 @@ NO_TEAM = "N/A"
 PHASE_SECONDS = 8           # rough length of a simulated phase
 TIMING_SECONDS = 2          # how far a simulated phase may sit from what it describes
 RATE = 5                    # rows a second
-WEIGHT = 0.5                # safe on simulated tags from barely-better-than-chance upwards
+HOME_TAG, AWAY_TAG = "Barcelona", "Atletic Club"   # as the provided Smart Tagging spells them
 
 
 def row_signs(events, index, step, home, away):
