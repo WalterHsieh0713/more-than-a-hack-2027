@@ -22,6 +22,26 @@ def test_the_file_is_named_after_the_team():
     assert submit.OUTPUT.endswith("827.csv")
 
 
+def test_the_model_sees_the_second_half_from_its_kickoff_and_the_frames_before_are_dead():
+    from dataclasses import replace
+    from test_stack import play
+    seen = {}
+
+    class Finalist:
+        def predict(self, m, costs, gain):
+            seen["half"] = m.half.copy()
+            return np.where(m.half > 0, H, X).astype(np.int8)
+    m = play()
+    first, kickoff = m.n_frames // 2, m.n_frames // 2 + 50
+    half = np.repeat(np.array([1, 2], dtype=np.int8), m.n_frames // 2)
+    half[:10] = 0
+    got = submit.labels(replace(m, half=half), Finalist(), kickoff=kickoff)
+    assert (seen["half"][first:kickoff] == 0).all() and (seen["half"][kickoff:] == 2).all()
+    assert (seen["half"][:first] == half[:first]).all()
+    assert (got[first:kickoff] == D).all() and (got[kickoff:] == H).all()
+    assert (got[:10] == X).all() and (got[10:first] == H).all()
+
+
 def test_the_submission_decodes_the_finalist_with_its_own_costs_and_no_tags():
     from dataclasses import replace
     from src import stack

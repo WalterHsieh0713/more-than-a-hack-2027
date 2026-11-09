@@ -8,6 +8,7 @@ src.blind so that nothing from the match reaches an assistant.
 """
 
 import os
+from dataclasses import replace
 
 import numpy as np
 
@@ -25,8 +26,12 @@ def finish(codes, half, kickoff=submission.SECOND_HALF_KICKOFF):
     return out
 
 
-def labels(m, trained):
-    return finish(trained.predict(m, stack.COSTS, stack.GAIN), m.half)
+def labels(m, trained, kickoff=submission.SECOND_HALF_KICKOFF):
+    """The model sees the second half from its kickoff, where every training match starts a half,
+    and the graded frames before it are filled with D."""
+    half = m.half.copy()
+    half[:kickoff][half[:kickoff] == 2] = 0
+    return finish(trained.predict(replace(m, half=half), stack.COSTS, stack.GAIN), m.half, kickoff)
 
 
 def main():

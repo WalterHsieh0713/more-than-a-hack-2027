@@ -1,6 +1,6 @@
 # Team 827
 
-Our entry to the challenge described below. **[TECHNICAL.md](TECHNICAL.md)** explains the method,
+Our entry to the challenge described below. **[827.md](827.md)** explains the method,
 the data we used and how to reproduce the file. With the match bundle unpacked into `data/`:
 
 ```bash
