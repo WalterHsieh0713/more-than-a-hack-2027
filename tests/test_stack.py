@@ -209,6 +209,18 @@ def test_saved_averaged_weights_give_the_same_labels(tmp_path):
     np.testing.assert_array_equal(fitted.predict(m, COSTS), again.predict(m, COSTS))
 
 
+def test_the_shipped_weights_give_the_same_labels_with_windows_line_endings(tmp_path):
+    """Git on Windows converts text files to CRLF by default, and LightGBM cannot parse that."""
+    import shutil
+    from src import submit
+    shutil.copytree(submit.MODEL, tmp_path / "v2")
+    for path in (tmp_path / "v2").rglob("*.txt"):
+        path.write_bytes(path.read_bytes().replace(b"\n", b"\r\n"))
+    m = play(seed=8)
+    np.testing.assert_array_equal(stack.Stack.load(submit.MODEL).predict(m),
+                                  stack.Stack.load(tmp_path / "v2").predict(m))
+
+
 def test_ball_free_training_reaches_every_stage(monkeypatch):
     seen, real_first, real_heads = [], stack.train_first, stack.train_heads
 

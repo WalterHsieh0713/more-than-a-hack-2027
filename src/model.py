@@ -25,6 +25,13 @@ HEADS = ("dead", "team", "change")
 PLAYER_COLUMNS = [features.NAMES.index(name) for name in features.PLAYER_ONLY]
 
 
+def booster(path):
+    """Weights from a LightGBM text file. Read in text mode, so CRLF line endings, which Git on
+    Windows may add on checkout and LightGBM cannot parse, come back as plain newlines."""
+    with open(path, encoding="utf-8") as handle:
+        return lgb.Booster(model_str=handle.read())
+
+
 def row_labels(m, index):
     """The label at the middle frame of each row."""
     step = max(1, m.fps // features.HZ)
@@ -111,7 +118,7 @@ class Model:
 
     @classmethod
     def load(cls, folder):
-        return cls(*[lgb.Booster(model_file=os.path.join(folder, name + ".txt")) for name in HEADS])
+        return cls(*[booster(os.path.join(folder, name + ".txt")) for name in HEADS])
 
 
 def fit(matches, copies, rounds=ROUNDS, threads=1):

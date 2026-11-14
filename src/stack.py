@@ -196,7 +196,7 @@ class First:
     @classmethod
     def load(cls, folder, free=False):
         return cls(model.Model.load(folder),
-                   {name: lgb.Booster(model_file=os.path.join(folder, name + ".txt"))
+                   {name: model.booster(os.path.join(folder, name + ".txt"))
                     for name in QUESTIONS}, free)
 
 
@@ -300,7 +300,7 @@ class Stack:
         """A partner folder, if there is one, always holds the ball-free side."""
         partner = os.path.join(folder, "partner")
         return cls(First.load(os.path.join(folder, "first"), free),
-                   *[lgb.Booster(model_file=os.path.join(folder, name + ".txt")) for name in HEADS],
+                   *[model.booster(os.path.join(folder, name + ".txt")) for name in HEADS],
                    partner=cls.load(partner, free=True) if os.path.isdir(partner) else None)
 
 
