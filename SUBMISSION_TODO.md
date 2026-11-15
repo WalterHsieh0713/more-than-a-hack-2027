@@ -34,7 +34,7 @@ Then check the SHA-256:
 - Windows PowerShell: `Get-FileHash evaluation/results/827.csv`
 - macOS/Linux: `shasum -a 256 evaluation/results/827.csv`
 
-It must be:
+It must be (PowerShell prints it in capitals, which is the same hash):
 
 ```
 71c0d0837faa7334a0d719a0b8c702f7bf5611cf905720673d7a3c6d3f5bf89b
@@ -51,7 +51,7 @@ other hosted AI. The terms forbid it.
 ## 3. Tidy the repo
 
 - [ ] Merge `stage-8-finalist` into `main`, so the judges see the final code first
-- [ ] Fix the test count in `827.md` ("340 tests" should be "342 tests", in the Reproduction section)
+- [x] Fix the test count in `827.md` ("340 tests" should be "342 tests", in the Reproduction section)
 - [ ] Delete this file, or leave it in. Either is fine.
 
 ## 4. Make the repo public
@@ -61,6 +61,9 @@ The rules require a public repository URL. Ours is private.
 - [ ] Check that `data/` is still gitignored and nothing from the match bundle is committed.
   The only files committed under `data/` and `evaluation/results/` come from the organisers'
   initial commit, which is already public.
+- [ ] Read `progress/2026-11-01-walter.md` and `progress/2026-11-05-alex.md` for anything about
+  results on the provided match. Everything in the repo becomes public; remove anything like that
+  first. Name: ______
 - [ ] GitHub, then Settings, then Change visibility, then Public
 - [ ] Open the URL in a private window to check that it loads
 
