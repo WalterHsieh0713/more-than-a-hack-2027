@@ -265,8 +265,7 @@ class Stack:
         row = columns(self.first.chances(x), half)
         return self.dead.predict(row[:, dead_columns(self.first.free)], num_threads=1), row
 
-    def chances(self, m):
-        """(H, A, D chances per row, change chance per row, half per row, row indices)."""
+    def _one_view(self, m):
         x, index = features.build(m)
         half = m.half[index]
         dead, row = self.dead_chance(x, half)
@@ -278,10 +277,20 @@ class Stack:
         p[:, H], p[:, A], p[:, D] = (1 - dead) * (1 - away), (1 - dead) * away, dead
         return p, change, half, index
 
-    def predict(self, m, costs=COSTS, gain=GAIN, signs=None, weight=0.0):
+    def chances(self, m, both_sides=False):
+        """(H, A, D chances per row, change chance per row, half per row, row indices).
+        both_sides averages in a second pass with the teams swapped, so that neither team's
+        answer depends on which one the file calls home."""
+        p, change, half, index = self._one_view(m)
+        if both_sides:
+            q, other = self._one_view(features.swap_teams(m))[:2]
+            p, change = (p + q[:, [A, H, D]]) / 2, (change + other) / 2
+        return p, change, half, index
+
+    def predict(self, m, costs=COSTS, gain=GAIN, signs=None, weight=0.0, both_sides=False):
         """One label per frame, decoded separately within each half. signs and weight add
         Smart Tagging evidence, one sign per row."""
-        p, change, half, index = self.chances(m)
+        p, change, half, index = self.chances(m, both_sides)
         if signs is not None:
             p = tags.apply(p, signs, weight)
         codes = np.concatenate([decode(p[half == h], change[half == h], costs, gain)

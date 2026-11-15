@@ -2,7 +2,8 @@
 
     python -m src.submit
 
-Reads only the tactical tracking, with weights trained on other matches. Smart Tagging is not
+Reads only the tactical tracking, with weights trained on other matches. The model runs on the
+match and on its team-swapped copy, and the two answers are averaged. Smart Tagging is not
 used: on simulated tags it helped the finalist only when nearly always right. Run through
 src.blind so that nothing from the match reaches an assistant.
 """
@@ -31,7 +32,8 @@ def labels(m, trained, kickoff=submission.SECOND_HALF_KICKOFF):
     and the graded frames before it are filled with D."""
     half = m.half.copy()
     half[:kickoff][half[:kickoff] == 2] = 0
-    return finish(trained.predict(replace(m, half=half), stack.COSTS, stack.GAIN), m.half, kickoff)
+    codes = trained.predict(replace(m, half=half), stack.COSTS, stack.GAIN, both_sides=True)
+    return finish(codes, m.half, kickoff)
 
 
 def main():

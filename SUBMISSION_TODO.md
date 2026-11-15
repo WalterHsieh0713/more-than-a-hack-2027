@@ -16,7 +16,7 @@ git fetch
 git checkout stage-8-finalist
 git pull
 uv sync
-uv run pytest        # expect: 342 passed
+uv run pytest        # expect: 344 passed
 ```
 
 - [ ] Tests pass on a second machine. Name: ______

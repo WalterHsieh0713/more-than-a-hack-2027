@@ -221,6 +221,24 @@ def test_the_shipped_weights_give_the_same_labels_with_windows_line_endings(tmp_
                                   stack.Stack.load(tmp_path / "v2").predict(m))
 
 
+def test_both_sides_chances_are_the_mean_of_the_two_views():
+    m, s = play(seed=9), averaged()
+    p, change = s.chances(m)[:2]
+    q, other = s.chances(features.swap_teams(m))[:2]
+    both, both_change = s.chances(m, both_sides=True)[:2]
+    np.testing.assert_allclose(both[:, H], (p[:, H] + q[:, A]) / 2)
+    np.testing.assert_allclose(both[:, D], (p[:, D] + q[:, D]) / 2)
+    np.testing.assert_allclose(both_change, (change + other) / 2)
+
+
+def test_with_both_sides_swapping_the_teams_swaps_the_chances_exactly():
+    m, s = play(seed=10), averaged()
+    p, change = s.chances(m, both_sides=True)[:2]
+    q, other = s.chances(features.swap_teams(m), both_sides=True)[:2]
+    np.testing.assert_array_equal(q[:, [A, H, D]], p)
+    np.testing.assert_array_equal(other, change)
+
+
 def test_ball_free_training_reaches_every_stage(monkeypatch):
     seen, real_first, real_heads = [], stack.train_first, stack.train_heads
 
