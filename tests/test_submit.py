@@ -28,7 +28,7 @@ def test_the_model_sees_the_second_half_from_its_kickoff_and_the_frames_before_a
     seen = {}
 
     class Finalist:
-        def predict(self, m, costs, gain):
+        def predict(self, m, costs, gain, both_sides):
             seen["half"] = m.half.copy()
             return np.where(m.half > 0, H, X).astype(np.int8)
     m = play()
@@ -49,11 +49,11 @@ def test_the_submission_decodes_the_finalist_with_its_own_costs_and_no_tags():
     seen = {}
 
     class Finalist:
-        def predict(self, m, costs, gain, signs=None, weight=0.0):
-            seen.update(costs=costs, gain=gain, signs=signs, weight=weight)
+        def predict(self, m, costs, gain, signs=None, weight=0.0, both_sides=False):
+            seen.update(costs=costs, gain=gain, signs=signs, weight=weight, both_sides=both_sides)
             return np.full(m.n_frames, H, dtype=np.int8)
     m = play()
     submit.labels(replace(m, half=np.repeat(np.array([1, 2], dtype=np.int8), m.n_frames // 2)),
                   Finalist())
-    assert seen == dict(costs=stack.COSTS, gain=stack.GAIN, signs=None, weight=0.0)
+    assert seen == dict(costs=stack.COSTS, gain=stack.GAIN, signs=None, weight=0.0, both_sides=True)
     assert submit.MODEL.endswith("v2")

@@ -9,14 +9,14 @@ organisers also said that anything not explicitly allowed is not permitted.
 
 ## 1. Get the latest code
 
-All the final work is on `stage-8-finalist`. `main` is still from 1 November.
+All the final work is on `main`.
 
 ```bash
 git fetch
-git checkout stage-8-finalist
+git checkout main
 git pull
 uv sync
-uv run pytest        # expect: 342 passed
+uv run pytest        # expect: 344 passed
 ```
 
 - [ ] Tests pass on a second machine. Name: ______
@@ -37,7 +37,7 @@ Then check the SHA-256:
 It must be (PowerShell prints it in capitals, which is the same hash):
 
 ```
-71c0d0837faa7334a0d719a0b8c702f7bf5611cf905720673d7a3c6d3f5bf89b
+311f12563a420d044646fed0d1592f43718d170d6a9fb52dacecd4b34fbe2656
 ```
 
 - [ ] The validator passes
@@ -50,7 +50,7 @@ other hosted AI. The terms forbid it.
 
 ## 3. Tidy the repo
 
-- [ ] Merge `stage-8-finalist` into `main`, so the judges see the final code first
+- [x] Merge `stage-8-finalist` into `main`, so the judges see the final code first
 - [x] Fix the test count in `827.md` ("340 tests" should be "342 tests", in the Reproduction section)
 - [ ] Delete this file, or leave it in. Either is fine.
 
