@@ -65,3 +65,6 @@ env/
 
 # Open external datasets (IDSSE etc.): downloaded by scripts, never committed
 external_data/
+
+# Local assistant settings and agent worktrees
+.claude/

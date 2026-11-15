@@ -27,10 +27,11 @@ import urllib.request
 import numpy as np
 from lxml import etree
 
-from ..match import A, AWAY, D, H, HOME, Match, ROOT, X
+from ..match import A, AWAY, D, EXTERNAL_DIR, H, HOME, Match, X
 
-DIR = os.path.join(ROOT, "external_data", "idsse")
+DIR = os.path.join(EXTERNAL_DIR, "idsse")
 REPO = "https://huggingface.co/datasets/pysport/idsse-data"
+REVISION = "a715a38dfbaf5f58e431727c2b78d174101a703c"  # pinned: training must not follow a new push
 MATCHES = ("J03WMX", "J03WN1", "J03WOH", "J03WOY", "J03WPY", "J03WQQ", "J03WR9")
 SECTIONS = {"firstHalf": 1, "secondHalf": 2}
 FPS = 25
@@ -38,7 +39,7 @@ FPS = 25
 
 def _files():
     """{match_id: {kind: (filename, sha256 or None)}} from the mirror's file listing."""
-    with urllib.request.urlopen(REPO.replace("/datasets/", "/api/datasets/") + "/tree/main") as r:
+    with urllib.request.urlopen(REPO.replace("/datasets/", "/api/datasets/") + "/tree/" + REVISION) as r:
         listing = json.load(r)
     out = {m: {} for m in MATCHES}
     kinds = {"matchinformation": "meta", "events_raw": "events", "positions_raw": "positions"}
@@ -65,7 +66,7 @@ def download():
         for kind, (name, sha) in sorted(kinds.items()):
             path = os.path.join(DIR, name)
             if not (os.path.isfile(path) and (sha is None or _sha256(path) == sha)):
-                urllib.request.urlretrieve("{}/resolve/main/{}".format(REPO, name), path)
+                urllib.request.urlretrieve("{}/resolve/{}/{}".format(REPO, REVISION, name), path)
             if sha is not None and _sha256(path) != sha:
                 raise IOError("sha256 mismatch: {}".format(name))
             print("ok", match_id, kind)

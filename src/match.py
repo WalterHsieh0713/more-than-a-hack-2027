@@ -19,6 +19,7 @@ from typing import Optional
 import numpy as np
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+EXTERNAL_DIR = os.environ.get("MTAH_EXTERNAL_DIR") or os.path.join(ROOT, "external_data")
 sys.path.insert(0, os.path.join(ROOT, "evaluation"))
 import possession_metrics as pm  # noqa: E402
 
@@ -32,8 +33,8 @@ class Match:
     fps: int
     pitch: tuple                      # (length, width) in metres
     half: np.ndarray                  # int8 [T]: 1, 2, or 0 on separator / ungraded frames
-    ball: np.ndarray                  # float32 [T, 3]: x, y, z (z NaN when the source has none)
-    players: np.ndarray               # float32 [T, P, 2]
+    ball: np.ndarray                  # float [T, 3]: x, y, z (z NaN when the source has none)
+    players: np.ndarray               # float [T, P, 2]
     team: np.ndarray                  # int8 [P]: HOME or AWAY per slot
     labels: Optional[np.ndarray] = None   # int8 [T], or None when there is no ground truth
     source_frame: Optional[np.ndarray] = None  # int64 [T]: the provider's own frame number
@@ -61,5 +62,7 @@ class Match:
 
 
 def label_string(codes):
-    """Codes to the H/A/D/X letters a submission file uses."""
+    """Codes to the H/A/D/X letters a submission file uses. Numpy would wrap -1 round to X."""
+    if ((codes < 0) | (codes >= pm.N_LABELS)).any():
+        raise ValueError("code outside the four labels")
     return np.array(pm.LABELS)[codes]
