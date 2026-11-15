@@ -19,7 +19,7 @@ uv sync
 uv run pytest        # expect: 344 passed
 ```
 
-- [ ] Tests pass on a second machine. Name: ______
+- [x] Tests pass on a second machine. Name: Walter (344 passed, Windows)
 
 ## 2. Regenerate the file and check it's identical
 
@@ -40,8 +40,8 @@ It must be (PowerShell prints it in capitals, which is the same hash):
 311f12563a420d044646fed0d1592f43718d170d6a9fb52dacecd4b34fbe2656
 ```
 
-- [ ] The validator passes
-- [ ] The hash matches on a second machine. Name: ______
+- [x] The validator passes
+- [x] The hash matches on a second machine. Name: Walter (Windows)
 
 If the hash differs, stop and tell the team. Don't submit a file nobody can reproduce.
 
