@@ -58,12 +58,13 @@ other hosted AI. The terms forbid it.
 
 The rules require a public repository URL. Ours is private.
 
-- [ ] Check that `data/` is still gitignored and nothing from the match bundle is committed.
+- [x] Check that `data/` is still gitignored and nothing from the match bundle is committed.
   The only files committed under `data/` and `evaluation/results/` come from the organisers'
   initial commit, which is already public.
-- [ ] Read `progress/2026-11-01-walter.md` and `progress/2026-11-05-alex.md` for anything about
+- [x] Read `progress/2026-11-01-walter.md` and `progress/2026-11-05-alex.md` for anything about
   results on the provided match. Everything in the repo becomes public; remove anything like that
-  first. Name: ______
+  first. Checked 15 Nov: both notes are plans and setup only, and every number in them
+  is already in the organisers' public documents.
 - [ ] GitHub, then Settings, then Change visibility, then Public
 - [ ] Open the URL in a private window to check that it loads
 
