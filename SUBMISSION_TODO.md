@@ -1,95 +1,103 @@
-# Before the final submission
+# Walter: how to finish and submit
 
-**Deadline: Tuesday 17 November 2026, 23:59 CET.** The model (v2) is frozen. Everything left is
-checking and submitting. Tick each box and push, so everyone can see what's done.
+**Deadline: Tuesday 17 November 2026, 23:59 CET.** Please submit as soon as you can rather than on
+the day. The form keeps the last response before the deadline, so submitting early costs nothing.
 
-Don't change the model or tune anything on the provided match. Hand labels, tuning on the public
-window, checking output against the video, and pseudo-labels on this match are all banned. The
-organisers also said that anything not explicitly allowed is not permitted.
+Everything is built and checked. What's left is making the repo public and filling in the form.
+It should take about 15 minutes. Don't change any code or rerun any training.
 
-## 1. Get the latest code
+## Already done
 
-All the final work is on `main`.
+- The final code is on `main`. All 344 tests pass on macOS and on your Windows machine.
+- `827.csv` regenerates to the same file on both machines. Its SHA-256 is:
 
-```bash
-git fetch
+  ```
+  311f12563a420d044646fed0d1592f43718d170d6a9fb52dacecd4b34fbe2656
+  ```
+
+- No match data is committed, and the notes in `progress/` hold nothing from the match.
+- The technical document is `827.md`, in the top folder of the repo.
+
+## Step 1. Get the latest `main`
+
+```powershell
 git checkout main
 git pull
-uv sync
-uv run pytest        # expect: 344 passed
 ```
 
-- [x] Tests pass on a second machine. Name: Walter (344 passed, Windows)
+## Step 2. Check the file you're about to upload
 
-## 2. Regenerate the file and check it's identical
+You already have `evaluation/results/827.csv` from your hash check. Confirm it's still the right
+one:
 
-You need the match bundle in `data/` (or `MTAH_DATA_DIR` pointing at it).
-
-```bash
-uv run python -m src.submit
-uv run python evaluation/validate_submission.py evaluation/results/827.csv
+```powershell
+Get-FileHash evaluation/results/827.csv
 ```
 
-Then check the SHA-256:
-- Windows PowerShell: `Get-FileHash evaluation/results/827.csv`
-- macOS/Linux: `shasum -a 256 evaluation/results/827.csv`
+PowerShell prints the hash in capitals. It must be the hash above. If it isn't, regenerate the
+file with `uv run python -m src.submit` and check again. If it still differs, stop and message
+Alex.
 
-It must be (PowerShell prints it in capitals, which is the same hash):
+- [ ] The hash matches
 
-```
-311f12563a420d044646fed0d1592f43718d170d6a9fb52dacecd4b34fbe2656
-```
+## Step 3. Make the repo public
 
-- [x] The validator passes
-- [x] The hash matches on a second machine. Name: Walter (Windows)
+The rules require a public repository, and only you can change this.
 
-If the hash differs, stop and tell the team. Don't submit a file nobody can reproduce.
+1. Open https://github.com/WalterHsieh0713/more-than-a-hack-2027/settings
+2. Scroll to the bottom, to "Danger Zone"
+3. Click "Change visibility", choose "Change to public", and confirm
+4. Open https://github.com/WalterHsieh0713/more-than-a-hack-2027 in a private browser window, not
+   logged in, and check that it loads
 
-Never paste the CSV, scores, label counts or anything under `data/logs` into ChatGPT, Claude or any
-other hosted AI. The terms forbid it.
+- [ ] The repo is public and loads in a private window
 
-## 3. Tidy the repo
+## Step 4. Check for late rulings
 
-- [x] Merge `stage-8-finalist` into `main`, so the judges see the final code first
-- [x] Fix the test count in `827.md` ("340 tests" should be "342 tests", in the Reproduction section)
-- [ ] Delete this file, or leave it in. Either is fine.
+Look through the organisers' emails for anything new since 6 November. If something changes what
+we're allowed to submit, stop and message Alex.
 
-## 4. Make the repo public
+- [ ] Nothing new, or the team has discussed it
 
-The rules require a public repository URL. Ours is private.
+## Step 5. Submit the form
 
-- [x] Check that `data/` is still gitignored and nothing from the match bundle is committed.
-  The only files committed under `data/` and `evaluation/results/` come from the organisers'
-  initial commit, which is already public.
-- [x] Read `progress/2026-11-01-walter.md` and `progress/2026-11-05-alex.md` for anything about
-  results on the provided match. Everything in the repo becomes public; remove anything like that
-  first. Checked 15 Nov: both notes are plans and setup only, and every number in them
-  is already in the organisers' public documents.
-- [ ] GitHub, then Settings, then Change visibility, then Public
-- [ ] Open the URL in a private window to check that it loads
-
-## 5. Technical document
-
-- [ ] Export `827.md` to `827.pdf` (the form accepts `.md` too, but it must be named `827`)
-- [ ] Check that the tables and code blocks survived the export
-
-## 6. Last checks
-
-- [ ] Re-read the organisers' GitHub issues
-  (github.com/metrica-sports/more-than-a-hack-2027/issues) and the email inbox for new rulings
-- [ ] Decide who submits: ______ (they need a Google account)
-
-## 7. Submit
-
-Use the Google Form from the organisers' email. Only one response per team counts, and the last
-one before the deadline is scored.
+Open the Google Form linked in the organisers' email. You need to be signed in to a Google account.
 
 | Field | What to put |
 |---|---|
-| Team Name | `827` |
-| Possession file | `827.csv`, the one with the hash above |
-| Public code repository URL | https://github.com/WalterHsieh0713/more-than-a-hack-2027 |
-| Short technical document | `827.pdf` |
+| Team name | `827` |
+| Possession file | `evaluation/results/827.csv`, the one you checked in step 2 |
+| Public code repository URL | `https://github.com/WalterHsieh0713/more-than-a-hack-2027` |
+| Technical document | `827.md`, from the top folder of the repo |
 
-- [ ] Submitted. By ______, on ______ at ______
-- [ ] Screenshot of the confirmation posted in the team chat
+The form accepts Markdown, so there's no need to export a PDF. Don't rename either file.
+
+- [ ] Submitted, on ______ at ______
+
+## Step 6. Confirm
+
+1. Take a screenshot of the confirmation page and post it in the team chat.
+2. Tick the boxes in this file, commit and push, so everyone can see it's done.
+
+- [ ] Screenshot posted
+
+## After submitting
+
+Don't push anything else to the repo before the results are announced, apart from ticking these
+boxes. The judges will rerun the code, and it has to produce the file we submitted.
+
+## Things not to do
+
+- Don't paste the CSV, scores, label counts or anything under `data/logs` into ChatGPT, Claude or
+  any other hosted AI. The competition terms forbid it.
+- Don't compare the output against the video, and don't tune anything on the provided match.
+
+## If something goes wrong
+
+- **The repo can't be made public:** message Alex. Alex can push the same code to a public repo
+  under their own account, and you submit that URL instead.
+- **The form rejects the file:** run
+  `uv run python evaluation/validate_submission.py evaluation/results/827.csv` and send Alex the
+  one-line result.
+- **You can't submit in time:** tell Alex by Monday evening, and Alex will submit with the same
+  three items.
